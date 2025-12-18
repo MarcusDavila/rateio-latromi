@@ -1,0 +1,13 @@
+SELECT tipocusto.codigo,
+       tipocusto.descricao
+       
+FROM tipocusto
+
+LEFT JOIN grupocusto
+     ON grupocusto.grupo = tipocusto.grupo
+     AND grupocusto.empresa = tipocusto.empresa
+     AND grupocusto.codigo = tipocusto.grupocusto
+
+   
+WHERE tipocusto.ativoinativo = '1';
+

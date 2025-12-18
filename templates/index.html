@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, msg in messages %}
+      <div class="alert alert-{{category}} alert-dismissible fade show">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<!-- 1. BUSCAR NOTA -->
+<div class="card mb-3 shadow-sm">
+  <div class="card-header bg-dark text-white">1. Identificar Nota Fiscal</div>
+  <div class="card-body py-2">
+    <form method="post" action="/fetch_note" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small mb-1">CNPJ Fornecedor</label>
+        <input class="form-control form-control-sm" name="cnpj" value="{{ note.cnpjcpfcodigo if note else request.form.cnpj }}" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-1">Número Nota</label>
+        <input type="number" class="form-control form-control-sm" name="numero" value="{{ note.numero if note else request.form.numero }}" required>
+      </div>
+      <input type="hidden" name="tipocusto" value="{{ tipocusto_selected }}">
+      <div class="col-md-2">
+        <button class="btn btn-primary btn-sm w-100">Buscar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if note %}
+<div class="alert alert-primary py-2 mb-3">
+  <div class="row small">
+    <div class="col-md-4"><strong>Fornecedor:</strong> {{ note.razaosocial }}</div>
+    <div class="col-md-3"><strong>CNPJ:</strong> {{ note.cnpjcpfcodigoformatado }}</div>
+    <div class="col-md-2"><strong>Nota:</strong> {{ note.numero }}</div>
+    <div class="col-md-3 text-end">
+      <strong>Total NF:</strong> 
+      <span id="label-total-nf">{{ note.valortotalnotafiscal }}</span>
+      <input type="hidden" id="valor-total-nf" value="{{ note.valortotalnotafiscal }}">
+    </div>
+  </div>
+</div>
+
+{% if not allocations %}
+<!-- 2. UPLOAD -->
+<div class="card mb-3 border-secondary">
+  <div class="card-header bg-secondary text-white">2. Importar Rateio</div>
+  <div class="card-body">
+    <form method="post" action="/upload" enctype="multipart/form-data" class="row g-3">
+      <input type="hidden" name="cnpj" value="{{ note.cnpjcpfcodigo }}">
+      <input type="hidden" name="numero" value="{{ note.numero }}">
+
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Tipo de Custo</label>
+        <select name="tipocusto" class="form-select" required>
+          <option value="">-- Selecione --</option>
+          {% for t in tipos %}
+            <option value="{{t.codigo}}" {% if tipocusto_selected == t.codigo|string %}selected{% endif %}>
+              {{t.codigo}} - {{t.descricao}}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label fw-bold text-success">Valor Padrão</label>
+        <input type="text" name="valor_padrao" class="form-control" placeholder="0,00">
+        <div class="form-text small">Usado caso a planilha não tenha valores.</div>
+      </div>
+      
+      <div class="col-md-5">
+        <label class="form-label">Arquivo (Excel .xlsx)</label>
+        <input type="file" name="file" class="form-control" required accept=".csv,.xlsx,.xls">
+        <div class="form-text small">Procura colunas "CRT/CTE" e "Valor".</div>
+      </div>
+
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-success w-100">Carregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- 3. CONFERÊNCIA -->
+{% if allocations %}
+<div class="card mb-4 border-success">
+  <div class="card-header bg-success text-white d-flex justify-content-between">
+    <strong>3. Conferência e Gravação</strong>
+    <span>Total Docs: {{ allocations|length }}</span>
+  </div>
+  <div class="card-body p-0">
+    <form method="post" action="/save" id="form-save">
+      <input type="hidden" name="count" value="{{ allocations|length }}">
+      <input type="hidden" name="cnpj" value="{{ note.cnpjcpfcodigo }}">
+      <input type="hidden" name="numero" value="{{ note.numero }}">
+      <input type="hidden" name="serie" value="{{ note.serie }}">
+      <input type="hidden" name="dtemissao" value="{{ note.dtemissao }}">
+      <input type="hidden" name="tipocusto" value="{{ tipocusto_selected }}">
+
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 5%">#</th>
+              <th style="width: 20%">Documento</th>
+              <th style="width: 15%">Tipo</th>
+              <th style="width: 15%">Data Emissão</th>
+              <th style="width: 10%">Peso</th>
+              <th style="width: 15%">Status</th>
+              <th style="width: 20%" class="text-end">Valor (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in allocations %}
+              <tr class="{% if not a.found %}table-danger{% endif %}">
+                <td>{{ loop.index }}</td>
+                <td>
+                  <strong>{{ a.doc_numero }}</strong>
+                  <input type="hidden" name="found_{{ loop.index0 }}" value="{{ '1' if a.found else '0' }}">
+                  
+                  {% if a.found %}
+                    <!-- CAMPOS OCULTOS COM O PREFIXO CORRETO 'doc_' -->
+                    <input type="hidden" name="doc_tipodoc_{{ loop.index0 }}" value="{{ a.doc_data.doc_tipodoc }}">
+                    <input type="hidden" name="doc_grupo_{{ loop.index0 }}" value="{{ a.doc_data.doc_grupo }}">
+                    <input type="hidden" name="doc_empresa_{{ loop.index0 }}" value="{{ a.doc_data.doc_empresa }}">
+                    <input type="hidden" name="doc_filial_{{ loop.index0 }}" value="{{ a.doc_data.doc_filial }}">
+                    <input type="hidden" name="doc_unidade_{{ loop.index0 }}" value="{{ a.doc_data.doc_unidade }}">
+                    <input type="hidden" name="doc_dtemissao_{{ loop.index0 }}" value="{{ a.doc_data.doc_dtemissao }}">
+                    <input type="hidden" name="doc_dif_seq_{{ loop.index0 }}" value="{{ a.doc_data.doc_dif_seq }}">
+                    <input type="hidden" name="doc_seq_{{ loop.index0 }}" value="{{ a.doc_data.doc_seq }}">
+                    <input type="hidden" name="doc_peso_{{ loop.index0 }}" value="{{ a.doc_data.doc_peso }}">
+                    <input type="hidden" name="doc_serie_{{ loop.index0 }}" value="{{ a.doc_data.doc_serie }}">
+                  {% endif %}
+                </td>
+                
+                <td>
+                    <span class="badge bg-secondary">{{ a.tipo }}</span>
+                </td>
+
+                <td>{{ a.doc_data.doc_dtemissao if a.found else '-' }}</td>
+                <td>{{ a.doc_data.doc_peso if a.found else '-' }}</td>
+                
+                <td>
+                  {% if a.found %}
+                    <span class="badge bg-success">Encontrado</span>
+                  {% else %}
+                    <span class="badge bg-danger">Não Encontrado</span>
+                  {% endif %}
+                </td>
+                
+                <td>
+                  <input type="text" class="form-control text-end allocation-val" 
+                         name="allocation_val_{{ loop.index0 }}" 
+                         value="{{ a.valor }}"
+                         {% if not a.found %}disabled style="background-color: #f8d7da;"{% endif %}>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="6" class="text-end fw-bold">Total Rateio:</td>
+              <td class="text-end fw-bold fs-5">
+                <span id="total-display">0.00</span>
+                <div id="msg-divergencia" class="text-danger small" style="display:none;">Divergente do Total da NF</div>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="p-3 bg-light text-end border-top">
+        <a href="/" class="btn btn-secondary me-2">Cancelar</a>
+        <button type="submit" id="btn-gravar" class="btn btn-primary btn-lg" disabled>Gravar Dados</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const inputs = document.querySelectorAll('.allocation-val');
+  const totalDisplay = document.getElementById('total-display');
+  const btnGravar = document.getElementById('btn-gravar');
+  const msgDivergencia = document.getElementById('msg-divergencia');
+  
+  const valorTotalNF = parseFloat(document.getElementById('valor-total-nf').value || "0");
+
+  function parseVal(str) {
+    if (!str) return 0;
+    str = str.toString().trim();
+    if(str.indexOf(',') > -1) {
+       return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+    }
+    return parseFloat(str);
+  }
+
+  function calcTotal() {
+    let sum = 0;
+    inputs.forEach(inp => {
+      if (!inp.disabled) {
+        const val = parseVal(inp.value);
+        if(!isNaN(val)) sum += val;
+      }
+    });
+
+    totalDisplay.textContent = sum.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    
+    const diff = Math.abs(valorTotalNF - sum);
+    
+    if (diff <= 0.01 && sum > 0) {
+        btnGravar.disabled = false;
+        totalDisplay.classList.remove('text-danger');
+        totalDisplay.classList.add('text-success');
+        msgDivergencia.style.display = 'none';
+    } else {
+        btnGravar.disabled = true;
+        totalDisplay.classList.add('text-danger');
+        totalDisplay.classList.remove('text-success');
+        msgDivergencia.style.display = 'block';
+    }
+  }
+
+  inputs.forEach(i => i.addEventListener('input', calcTotal));
+  calcTotal();
+</script>
+{% endif %}
+{% endblock %}

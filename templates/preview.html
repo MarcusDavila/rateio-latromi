@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h4>Pré-visualização da Nota</h4>
+  <table class="table table-sm">
+    <tr><th>CNPJ</th><td>{{nota.cnpjcpfcodigoformatado}}</td></tr>
+    <tr><th>Razão Social</th><td>{{nota.razaosocial}}</td></tr>
+    <tr><th>Número</th><td>{{nota.numero}}</td></tr>
+    <tr><th>Data Emissão</th><td>{{nota.dtemissao}}</td></tr>
+  </table>
+
+  {% if allocations is not none %}
+    <h5>Rateios (pré-edição)</h5>
+    <form method="post" action="/save" id="save-form">
+      <input type="hidden" name="count" value="{{ allocations|length }}">
+      <input type="hidden" name="cnpj" value="{{ nota.cnpjcpfcodigo }}">
+      <input type="hidden" name="numero" value="{{ nota.numero }}">
+      <input type="hidden" name="serie" value="{{ nota.serie }}">
+      <input type="hidden" name="dtemissao" value="{{ nota.dtemissao }}">
+      <!-- grupo e empresa fixos = 1 -->
+      {% if crt %}
+        <input type="hidden" name="crt_tipodocumento" value="{{crt.tipodocumento}}">
+        <input type="hidden" name="crt_grupo" value="{{crt.grupo}}">
+        <input type="hidden" name="crt_empresa" value="{{crt.empresa}}">
+        <input type="hidden" name="crt_filial" value="{{crt.filial}}">
+        <input type="hidden" name="crt_unidade" value="{{crt.unidade}}">
+        <input type="hidden" name="crt_dtemissao" value="{{crt.dtemissao}}">
+        <input type="hidden" name="crt_diferenciadorsequencia" value="{{crt.diferenciadorsequencia}}">
+        <input type="hidden" name="crt_sequencia" value="{{crt.sequencia}}">
+        <input type="hidden" name="pesodocumento" value="{{crt.pesobruto}}">
+      {% endif %}
+      <div class="row mb-2">
+        <div class="col-md-4">
+          <label class="form-label">Valor por item (preencher para aplicar a todos)</label>
+          <input id="default-val" name="default_val" type="text" class="form-control" placeholder="197.40">
+          <div class="form-text">Preencha e pressione Enter para preencher valores vazios nas linhas abaixo.</div>
+        </div>
+      </div>
+      <table class="table table-bordered">
+        <thead><tr><th>#</th><th>Sequência</th><th class="text-end">Valor</th></tr></thead>
+        <tbody>
+          {% for a in allocations %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td><input class="form-control" name="allocation_seq_{{ loop.index0 }}" value="{{ a.sequencia or '' }}"></td>
+              <td><input type="number" step="0.01" class="form-control text-end allocation-val" name="allocation_val_{{ loop.index0 }}" value="{{ a.valor }}"></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" class="text-end"><strong>Total:</strong></td>
+            <td class="text-end"><span id="alloc-total">0.00</span></td>
+          </tr>
+        </tfoot>
+      </table>
+      <script>
+        // helper para normalizar valores (aceita vírgula)
+        function toFloat(v){
+          if(v === null || v === undefined) return NaN;
+          const s = v.toString().trim().replace(',','.');
+          const f = parseFloat(s);
+          return isNaN(f) ? NaN : f;
+        }
+
+        // calcula soma dos valores exibidos e atualiza o total
+        function updateTotal(){
+          let total = 0.0;
+          document.querySelectorAll('.allocation-val').forEach(function(inp){
+            const v = toFloat(inp.value);
+            if(!isNaN(v)) total += v;
+          });
+          document.getElementById('alloc-total').textContent = total.toFixed(2);
+        }
+
+        // aplica default nas linhas que estão vazias
+        function applyDefaultToEmpty(defaultVal){
+          document.querySelectorAll('.allocation-val').forEach(function(inp){
+            if(inp.value === null || inp.value.toString().trim() === ''){
+              inp.value = defaultVal;
+            }
+          });
+          updateTotal();
+        }
+
+        // eventos
+        document.querySelectorAll('.allocation-val').forEach(function(inp){
+          inp.addEventListener('input', updateTotal);
+        });
+
+        const defaultInput = document.getElementById('default-val');
+        defaultInput.addEventListener('keydown', function(e){
+          if(e.key === 'Enter'){
+            e.preventDefault();
+            const v = defaultInput.value.trim();
+            if(v !== ''){
+              applyDefaultToEmpty(v);
+            }
+          }
+        });
+
+        // also apply default on blur
+        defaultInput.addEventListener('blur', function(){
+          const v = defaultInput.value.trim();
+          if(v !== '') applyDefaultToEmpty(v);
+        });
+
+        // initialize total
+        updateTotal();
+      </script>
+      <button class="btn btn-primary">Gravar Rateios</button>
+    </form>
+  {% else %}
+    <p>Nenhum rateio importado. Use a opção de upload na tela inicial.</p>
+  {% endif %}
+
+{% endblock %}

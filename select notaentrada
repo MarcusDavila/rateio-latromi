@@ -1,0 +1,96 @@
+SELECT DISTINCT
+     notafiscalentrada.grupo
+    ,notafiscalentrada.empresa
+    ,notafiscalentrada.filial
+    ,notafiscalentrada.unidade
+    ,fnc_formata_cnpjcpfcod(notafiscalentrada.cnpjcpfcodigo) AS cnpjcpfcodigoformatado
+    ,initcap(cadastro.razaosocial) AS razaosocial
+    ,notafiscalentrada.cnpjcpfcodigo
+    ,notafiscalentrada.serie
+    ,notafiscalentrada.numero
+    ,notafiscalentrada.dtemissao
+    ,notafiscalentrada.dtentrada
+    ,notafiscalentrada.valorprodutos
+    ,notafiscalentrada.valorservicos
+    ,notafiscalentrada.valortotalnotafiscal
+    ,notafiscalentrada.chaveacessonfe
+    ,notafiscalentrada.modelo
+    ,notafiscalentrada.tipoinclusao
+    ,notafiscalentrada.dtemissao::VARCHAR AS dataformatobanco
+    ,notafiscalentrada.processo
+    ,notafiscalentrada.dtinc 		
+    ,fnc_formata_cnpjcpfcod(despesaoperacional.motorista) AS motoristaformatado
+    ,initcap(cadastromotorista.razaosocial) AS razaosocialmotorista
+    ,notafiscalentrada.usuarioemissor
+    ,usuario.nomecompleto
+    ,CASE 
+        WHEN despesaoperacional.tipodocumento = 27 THEN coleta.dtemissao::DATE 
+        WHEN despesaoperacional.tipodocumento = 201 THEN transporte.dtemissao::DATE
+     END AS dtemissaocoleta		
+    ,CASE 
+        WHEN despesaoperacional.tipodocumento = 27 THEN coleta.numero 
+        WHEN despesaoperacional.tipodocumento = 201 THEN transporte.numero
+      END AS numerocoleta
+
+FROM notafiscalentrada
+
+-- Dados do Usuário Emissor
+LEFT JOIN usuario 
+    ON usuario.codigo = notafiscalentrada.usuarioemissor
+
+-- Dados do Fornecedor da Nota
+JOIN cadastro
+    ON cadastro.codigo = notafiscalentrada.cnpjcpfcodigo
+
+-- Ligação com Itens da Ordem de Compra (Causa da duplicação de linhas, tratada pelo DISTINCT)
+LEFT JOIN notafiscalentrada_item_ordemcomprarecebida
+    ON notafiscalentrada_item_ordemcomprarecebida.grupo = notafiscalentrada.grupo
+    AND notafiscalentrada_item_ordemcomprarecebida.empresa = notafiscalentrada.empresa
+    AND notafiscalentrada_item_ordemcomprarecebida.cnpjcpfcodigo = notafiscalentrada.cnpjcpfcodigo
+    AND notafiscalentrada_item_ordemcomprarecebida.dtemissao = notafiscalentrada.dtemissao
+    AND notafiscalentrada_item_ordemcomprarecebida.serie = notafiscalentrada.serie
+    AND notafiscalentrada_item_ordemcomprarecebida.numero = notafiscalentrada.numero
+
+-- Ligação com Despesa Operacional (Para pegar Motorista e vínculos de transporte)
+LEFT JOIN despesaoperacional
+    ON notafiscalentrada_item_ordemcomprarecebida.grupo = despesaoperacional.grupo
+    AND notafiscalentrada_item_ordemcomprarecebida.empresa = despesaoperacional.empresa
+    AND notafiscalentrada_item_ordemcomprarecebida.filialordemcompra = despesaoperacional.filialordemcompra
+    AND notafiscalentrada_item_ordemcomprarecebida.unidadeordemcompra = despesaoperacional.unidadeordemcompra
+    AND notafiscalentrada_item_ordemcomprarecebida.diferenciadornumeroordemcompra = despesaoperacional.diferenciadornumeroordemcompra
+    AND notafiscalentrada_item_ordemcomprarecebida.numeroordemcompra = despesaoperacional.numeroordemcompra
+
+-- Dados do Motorista
+LEFT JOIN cadastro AS cadastromotorista
+    ON cadastromotorista.codigo = despesaoperacional.motorista
+
+-- Ligação com Coleta
+LEFT JOIN coleta
+    ON coleta.grupo = despesaoperacional.grupo
+    AND coleta.empresa = despesaoperacional.empresa
+    AND coleta.filial = despesaoperacional.filialdocumento
+    AND coleta.unidade = despesaoperacional.unidadedocumento
+    AND coleta.diferenciadornumero = despesaoperacional.diferenciadornumerodocumento
+    AND coleta.serie = despesaoperacional.seriedocumento
+    AND coleta.numero = despesaoperacional.numerodocumento
+    AND despesaoperacional.tipodocumento = 27       		
+
+-- Ligação com Transporte
+LEFT JOIN transporte
+    ON transporte.grupo = despesaoperacional.grupo
+    AND transporte.empresa = despesaoperacional.empresa
+    AND transporte.diferenciadornumero = despesaoperacional.diferenciadornumerodocumento
+    AND transporte.numero = despesaoperacional.numerodocumento
+    AND despesaoperacional.tipodocumento = 201
+
+-- WHERE com Filtros Dinâmicos
+WHERE  
+    notafiscalentrada.grupo = 1
+    AND notafiscalentrada.empresa = 1
+    AND notafiscalentrada.numero = 42900
+    and notafiscalentrada.cnpjcpfcodigo = '07473735018390'
+
+ORDER BY
+    notafiscalentrada.dtemissao DESC
+   ,notafiscalentrada.dtentrada DESC
+   ,notafiscalentrada.numero;

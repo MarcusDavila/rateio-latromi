@@ -1,0 +1,48 @@
+INSERT INTO notafiscalentrada_rateiodocumento 
+ (grupo, 
+ empresa, 
+ cnpjcpfcodigo, 
+ dtemissao, 
+ serie, 
+ numero, 
+ sequencia, 
+ dtinc,
+ dtalt, 
+ tipodocumento, 
+ grupodocumento, 
+ empresadocumento,
+ filialdocumento, 
+ unidadedocumento, 
+ cnpjcpfcodigodocumento, 
+ dtemissaodocumento,
+ diferenciadornumerodocumento, 
+ seriedocumento, 
+ numerosequenciadocumento, 
+ pesodocumento, 
+ valor, 
+ tipocusto)
+ 
+values(
+ 1, --GRUPO da nota 
+ 1, --EMPRESA da nota 
+ '07473735018390', -- cnpjcpfcodigo da nota 
+ '09/12/2025 03:00:00', --dtemissao da nota
+ 8, --SERIE da nota 
+ 42900, --NUMERO (NOTA FISCAL)
+ coalesce((select max(sequencia) from notafiscalentrada_rateiodocumento where grupo= 1 and empresa=1 and cnpjcpfcodigo='07473735018390' and dtemissao='09/12/2025 03:00:00' and serie=8 and numero=42900),1)+1, --SEQUENCIA
+ now(), --DTINC
+ null, --DTALT
+ 13, --TIPO DOCUMENTO - 13 EH CRT ENTAO O VALOR EH PADRAO 
+ 1, --GRUPO DOCUMENTO
+ 1,--EMPRESA DOCUMENTO
+ 1, --FILIAL DOCUMENTO
+ 1, --unidadedocumento
+ NULL, --cnpjcpfcodigodocumento
+ '2025-10-30 09:05:00',--dtemissaodocumento
+ 1, --diferenciadornumerodocumento
+ 1, --seriedocumento
+ 48752, --numerosequenciadocumento
+ '16222', --pesodocumento
+'109.45' ,--valor
+ 205 -- tipocusto
+ )
