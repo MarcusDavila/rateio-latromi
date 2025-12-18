@@ -28,7 +28,8 @@ DEFAULT_EMPRESA = 1
 SELECT_TIPO_CUSTO = """
     SELECT tipocusto.codigo, tipocusto.descricao 
     FROM tipocusto 
-    WHERE tipocusto.ativoinativo = '1';
+    WHERE tipocusto.ativoinativo = '1' and tipocusto.grupo = '1' and tipocusto.empresa = '1'
+    ORDER BY codigo;
 """
 
 SELECT_NOTE_SQL = """
