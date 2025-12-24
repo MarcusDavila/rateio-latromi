@@ -3,7 +3,7 @@ import re
 from flask import Flask, render_template, request, redirect, url_for, flash
 from dotenv import load_dotenv
 
-# Import modules
+
 from database import get_conn
 from queries import (
     SELECT_TIPO_CUSTO, SELECT_NOTE_SQL, 
@@ -89,7 +89,6 @@ def upload():
 
         for doc_str, data in docs_dict.items():
             
-            # --- LÓGICA DE PRIORIDADE ---
             if data['sum'] > 0.001:
                 final_val = data['sum']
             else:
@@ -196,4 +195,4 @@ def save():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

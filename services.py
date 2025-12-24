@@ -62,7 +62,7 @@ class FileProcessor:
                 df.columns = [str(c).strip().upper() for c in df.columns]
 
                 doc_col = None
-                possible_names = ['CRT', 'CTE', 'CT-E', 'CRTS/CTES', 'CONHECIMENTO', 'DOC', 'MIC']
+                possible_names = ['CRT', 'CTE', 'CT-E', 'CRTS/CTES', 'CONHECIMENTO']
                 for name in possible_names:
                     if name in df.columns: doc_col = name; break
                 
@@ -96,7 +96,7 @@ class FileProcessor:
                         line_value = ParseUtils.parse_float_safe(row[val_col])
 
                     if found_docs:
-                        # Pega apenas o primeiro documento da célula
+                  
                         first_doc = found_docs[0]
                         items_in_sheet += 1
                         

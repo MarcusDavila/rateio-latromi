@@ -1,4 +1,4 @@
-LP responsavel por importar rateio de nota fiscal, antes de importar o arquivo deve ser informado cnpj do cliente e o nr da nota fiscal, e o tipo de custo ( tipo de custo cadastrado em uma tablea separada conforme select abaixo, sistema deve permitir selecionar um dos tipos de custo ja cadastrados).
+Responsavel por importar rateio de nota fiscal, antes de importar o arquivo deve ser informado cnpj do cliente e o nr da nota fiscal, e o tipo de custo ( tipo de custo cadastrado em uma tablea separada conforme select abaixo, sistema deve permitir selecionar um dos tipos de custo ja cadastrados).
 Apos informar os dados conforme acima, o sistema deve trazer as informaçoes da nota fiscal conforme select abaixo, para que o usuario confirme se esta trazendo a nota correta antes de importar o arquivo de rateio.
 Apos conferencia, o usuario deve importar o arquivo de rateio, que sera vinculado a nota fiscal conforme cnpj/cpf e numero da nota informado..
 Sistema entao deve abrir uma tela onde o usuario podera conferir e alterar o valor do rateio antes de gravar os dados no sistema.
